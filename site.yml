@@ -1,0 +1,171 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Build & Deploy (Codex Template)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (repo local)
+        uses: actions/checkout@v4
+
+      - name: Checkout (template global)
+        uses: actions/checkout@v4
+        with:
+          repository: Academic-Codex/academic-codex.github.io
+          ref: main
+          path: template-global
+          sparse-checkout: |
+            template
+          sparse-checkout-cone-mode: true
+
+      - name: Instalar Python (e PyYAML)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      # <-- LÊ codex.yml e exporta como variáveis de ambiente
+      - name: Carregar variáveis do codex.yml (com HERO do repositório central)
+        run: |
+          python - << 'PY'
+          import os, json, yaml, re
+
+          def load_config():
+              for p in ("codex.yml","codex.yaml","codex.json",".codex.yml",".codex.yaml",".codex.json"):
+                  if os.path.exists(p):
+                      with open(p, encoding="utf-8") as f:
+                          if p.endswith(".json"):
+                              return json.load(f) or {}
+                          return yaml.safe_load(f) or {}
+              return {}
+
+          def to_key(name):  # "contact.name" -> "CONTACT_NAME"
+              return re.sub(r'[^A-Za-z0-9_]+','_', name).upper()
+
+          def flatten(prefix, obj, out):
+              if isinstance(obj, dict):
+                  for k,v in obj.items():
+                      flatten(f"{prefix}{k}.", v, out)
+              else:
+                  out[to_key(prefix[:-1])] = str(obj)
+
+          cfg = load_config() or {}
+
+          # Defaults para os assets centrais
+          assets_base   = cfg.get("assets_base",   "https://academic-codex.github.io").rstrip("/")
+          assets_subdir = cfg.get("assets_subdir", "img/portfolio").strip("/")
+
+          flat = {}
+          for k,v in cfg.items():
+              if isinstance(v, dict):
+                  flatten(f"{k}.", v, flat)
+              else:
+                  flat[to_key(k)] = str(v)
+
+          # Se o usuário forneceu HERO absoluto, usa como está.
+          # Se forneceu apenas hero_file, montamos HERO a partir do repositório central:
+          if "HERO" not in flat:
+              hero_file = cfg.get("hero_file")
+              if hero_file:
+                  hero_file = hero_file.lstrip("/")
+                  flat["HERO"] = f"{assets_base}/{assets_subdir}/{hero_file}"
+
+          # Exporta tudo para o ambiente do job
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as gh:
+              for k, val in flat.items():
+                  gh.write(f"{k}<<EOF\n{val}\nEOF\n")
+          PY
+      - name: Converter notebooks (opcional)
+        run: |
+          mkdir -p site/notebooks
+          if [ -d "notebooks" ] && compgen -G "notebooks/*.ipynb" > /dev/null; then
+            pip install nbconvert jupyter
+            jupyter nbconvert --to html --output-dir site/notebooks notebooks/*.ipynb
+          else
+            echo "Sem notebooks para converter."
+          fi
+
+      - name: Debug – verificar conteúdo baixado
+        run: |
+          echo "📂 Raiz do workspace:"
+          ls -la
+          echo "📂 Dentro de template-global:"
+          ls -la template-global || true
+          echo "📂 Estrutura recursiva (primeiros 100 itens):"
+          find template-global | head -n 100
+
+      - name: Copiar template global para 'site/'
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          cp -R template-global/* site/
+
+      # Render: troca {{CHAVE}} por variáveis de ambiente criadas acima
+      - name: Preencher placeholders do template
+        env:
+          TITLE:         ${{ vars.TITLE }}
+          SUBTITLE:      ${{ vars.SUBTITLE }}
+          ABOUT:         ${{ vars.ABOUT }}
+          CONTACT_NAME:  ${{ vars.CONTACT_NAME }}
+          CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+          AREA:          ${{ vars.AREA }}
+          CATEGORY:      ${{ vars.CATEGORY }}
+          ASSETS_BASE:   ${{ vars.ASSETS_BASE }}
+          ASSETS_SUBDIR: ${{ vars.ASSETS_SUBDIR }}
+          HERO_FILE:     ${{ vars.HERO_FILE }}
+        run: |
+          set -euo pipefail
+          # Monte a URL completa da hero (se preferir, pode já mandar a HERO pronta nas vars)
+          HERO_URL="${ASSETS_BASE}/${ASSETS_SUBDIR}/${HERO_FILE}"
+
+          # Substituições (use gnu-sed no runner linux)
+          find site -type f \( -name '*.html' -o -name '*.css' -o -name '*.js' -o -name '*.json' \) -print0 | \
+            xargs -0 sed -i \
+              -e "s|{{ *TITLE *}}|${TITLE}|g" \
+              -e "s|{{ *SUBTITLE *}}|${SUBTITLE}|g" \
+              -e "s|{{ *ABOUT *}}|${ABOUT}|g" \
+              -e "s|{{ *CONTACT_NAME *}}|${CONTACT_NAME}|g" \
+              -e "s|{{ *CONTACT_EMAIL *}}|${CONTACT_EMAIL}|g" \
+              -e "s|{{ *AREA *}}|${AREA}|g" \
+              -e "s|{{ *CATEGORY *}}|${CATEGORY}|g" \
+              -e "s|{{ *ASSETS_BASE *}}|${ASSETS_BASE}|g" \
+              -e "s|{{ *ASSETS_SUBDIR *}}|${ASSETS_SUBDIR}|g" \
+              -e "s|{{ *HERO *}}|${HERO_URL}|g"
+
+      - name: Copiar assets locais (img/, etc.)
+        run: |
+          if [ -d "img" ]; then
+            mkdir -p site/img
+            cp -R img/* site/img/ || true
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
