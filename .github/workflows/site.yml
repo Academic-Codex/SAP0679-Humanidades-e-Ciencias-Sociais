@@ -56,7 +56,7 @@ jobs:
             --out site \
             --template template \
             --title "${{ github.repository }}" \
-            --cfg .scripts/codex.yml
+            --cfg .scripts/codex.yml \
             --execute false
 
       # 6) Diagnóstico: mostrar o que será publicado
