@@ -11,59 +11,47 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (main)
+      # 1) checkout do repositório da disciplina
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Trazer o template global
-      - name: Checkout template_global
+      # 2) checkout do template global (no caminho template-global/)
+      - name: Checkout template global
         uses: actions/checkout@v4
         with:
           repository: Academic-Codex/academic-codex.github.io
           path: template-global
 
-      # Monte a pasta "site" com o seu template/HTML de entrada
-      - name: Preparar pasta do site
-        run: |
-          rm -rf site _site
-          mkdir -p site
-          cp -R template-global/.github/actions/build-template-site/template/* site/
-
-      # ==== BUILD JEKYLL ====
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+      # 3) Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          ruby-version: '3.2'
-          bundler-cache: true
+          python-version: "3.11"
 
-      - name: Instalar Jekyll
-        working-directory: site
+      # 4) Instalar nbconvert + deps (HTML não precisa de pandoc)
+      - name: Install nbconvert + deps
         run: |
-          if [ ! -f Gemfile ]; then
-            printf 'source "https://rubygems.org"\n gem "jekyll", "~> 4.3"\n' > Gemfile
-          fi
-          bundle install
+          python -m pip install --upgrade pip
+          pip install nbconvert jupyter jupyterlab_pygments pygments
 
-      - name: Build Jekyll
-        working-directory: site
+      # 5) Converter notebooks e montar site/ com o seu script
+      - name: Build static site from notebooks
         run: |
-          bundle exec jekyll build --destination ../_site \
-            --baseurl "/${{ github.event.repository.name }}"
+          python .github/scripts/build_site.py \
+            --src Aulas \
+            --out site \
+            --template template-global/.github/actions/build-template-site/template \
+            --title "${{ github.repository }}" \
+            --execute false
 
-      # ==== PUBLICAR NA gh-pages ====
-      - name: Publish to gh-pages
-        uses: peaceiris/actions-gh-pages@v3
+      # 6) Publicar em gh-pages (cria/atualiza a branch para você)
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: _site
+          publish_dir: ./site
           publish_branch: gh-pages
-          # Cria/reescreve a branch como órfã (sem histórico da main)
-          force_orphan: true
-          # (opcional) preserve histórico da gh-pages:
-          # force_orphan: false
-          # (opcional) user/email do commit:
-          user_name: "github-actions[bot]"
-          user_email: "github-actions[bot]@users.noreply.github.com"
