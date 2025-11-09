@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Build & Deploy (Codex Template)
 
 on:
@@ -39,56 +40,56 @@ jobs:
           pip install pyyaml
 
       # <-- LÊ codex.yml e exporta como variáveis de ambiente
-- name: Carregar variáveis do codex.yml (com HERO do repositório central)
-  run: |
-    python - << 'PY'
-    import os, json, yaml, re
+      - name: Carregar variáveis do codex.yml (com HERO do repositório central)
+        run: |
+          python - << 'PY'
+          import os, json, yaml, re
 
-    def load_config():
-        for p in ("codex.yml","codex.yaml","codex.json",".codex.yml",".codex.yaml",".codex.json"):
-            if os.path.exists(p):
-                with open(p, encoding="utf-8") as f:
-                    if p.endswith(".json"):
-                        return json.load(f) or {}
-                    return yaml.safe_load(f) or {}
-        return {}
+          def load_config():
+              for p in ("codex.yml","codex.yaml","codex.json",".codex.yml",".codex.yaml",".codex.json"):
+                  if os.path.exists(p):
+                      with open(p, encoding="utf-8") as f:
+                          if p.endswith(".json"):
+                              return json.load(f) or {}
+                          return yaml.safe_load(f) or {}
+              return {}
 
-    def to_key(name):  # "contact.name" -> "CONTACT_NAME"
-        return re.sub(r'[^A-Za-z0-9_]+','_', name).upper()
+          def to_key(name):  # "contact.name" -> "CONTACT_NAME"
+              return re.sub(r'[^A-Za-z0-9_]+','_', name).upper()
 
-    def flatten(prefix, obj, out):
-        if isinstance(obj, dict):
-            for k,v in obj.items():
-                flatten(f"{prefix}{k}.", v, out)
-        else:
-            out[to_key(prefix[:-1])] = str(obj)
+          def flatten(prefix, obj, out):
+              if isinstance(obj, dict):
+                  for k,v in obj.items():
+                      flatten(f"{prefix}{k}.", v, out)
+              else:
+                  out[to_key(prefix[:-1])] = str(obj)
 
-    cfg = load_config() or {}
+          cfg = load_config() or {}
 
-    # Defaults para os assets centrais
-    assets_base   = cfg.get("assets_base",   "https://academic-codex.github.io").rstrip("/")
-    assets_subdir = cfg.get("assets_subdir", "img/portfolio").strip("/")
+          # Defaults para os assets centrais
+          assets_base   = cfg.get("assets_base",   "https://academic-codex.github.io").rstrip("/")
+          assets_subdir = cfg.get("assets_subdir", "img/portfolio").strip("/")
 
-    flat = {}
-    for k,v in cfg.items():
-        if isinstance(v, dict):
-            flatten(f"{k}.", v, flat)
-        else:
-            flat[to_key(k)] = str(v)
+          flat = {}
+          for k,v in cfg.items():
+              if isinstance(v, dict):
+                  flatten(f"{k}.", v, flat)
+              else:
+                  flat[to_key(k)] = str(v)
 
-    # Se o usuário forneceu HERO absoluto, usa como está.
-    # Se forneceu apenas hero_file, montamos HERO a partir do repositório central:
-    if "HERO" not in flat:
-        hero_file = cfg.get("hero_file")
-        if hero_file:
-            hero_file = hero_file.lstrip("/")
-            flat["HERO"] = f"{assets_base}/{assets_subdir}/{hero_file}"
+          # Se o usuário forneceu HERO absoluto, usa como está.
+          # Se forneceu apenas hero_file, montamos HERO a partir do repositório central:
+          if "HERO" not in flat:
+              hero_file = cfg.get("hero_file")
+              if hero_file:
+                  hero_file = hero_file.lstrip("/")
+                  flat["HERO"] = f"{assets_base}/{assets_subdir}/{hero_file}"
 
-    # Exporta tudo para o ambiente do job
-    with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as gh:
-        for k, val in flat.items():
-            gh.write(f"{k}<<EOF\n{val}\nEOF\n")
-    PY
+          # Exporta tudo para o ambiente do job
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as gh:
+              for k, val in flat.items():
+                  gh.write(f"{k}<<EOF\n{val}\nEOF\n")
+          PY
       - name: Converter notebooks (opcional)
         run: |
           mkdir -p site/notebooks
