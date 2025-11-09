@@ -52,7 +52,7 @@ jobs:
           set -euxo pipefail
           rm -rf site
           python .scripts/build_site.py \
-            --src Aulas \
+            --src . \
             --out site \
             --template template \
             --title "${{ github.repository }}" \
