@@ -47,7 +47,7 @@ jobs:
           pip install nbconvert jupyter jupyterlab_pygments pygments
 
       # 5) Build do site a partir dos notebooks
-      - name: Build static site from notebooks
+      - name: Build static site
         run: |
           set -euxo pipefail
           rm -rf site
@@ -56,6 +56,7 @@ jobs:
             --out site \
             --template template \
             --title "${{ github.repository }}" \
+            --cfg .scripts/codex.yml
             --execute false
 
       # 6) Diagnóstico: mostrar o que será publicado
