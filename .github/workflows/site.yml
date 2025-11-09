@@ -111,10 +111,9 @@ jobs:
 
       - name: Copiar template global para 'site/'
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p site
-          # copie inclusive arquivos ocultos (ex.: .nojekyll)
-          cp -R template-global/.github/actions/build-template-site/template/. site/
+          cp -R template-global/* site/
 
       # Render: troca {{CHAVE}} por variáveis de ambiente criadas acima
       - name: Renderizar placeholders {{CHAVE}}
