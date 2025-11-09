@@ -167,19 +167,54 @@ def build_static_site(src: Path, out: Path, template_dir: Path, title: str, exec
 
 # ================================ CLI ================================
 
-def render_tokens(src: str, title: str, nb_count: int, tree: dict | None):
+import yaml
+
+def load_config(cfg_path: Path) -> dict:
+    """Carrega o arquivo YAML de configuração (placeholders)."""
+    if not cfg_path or not cfg_path.exists():
+        return {}
+    with cfg_path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    # Se não houver HERO_URL explícito, monta a partir dos outros campos
+    if not data.get("HERO_URL"):
+        base = (data.get("ASSETS_BASE") or "").rstrip("/")
+        sub  = (data.get("ASSETS_SUBDIR") or "").strip("/")
+        fil  = (data.get("HERO_FILE") or "").lstrip("/")
+        if base and fil:
+            data["HERO_URL"] = "/".join(p for p in [base, sub, fil] if p)
+    return data
+
+
+def render_tokens(src: str, title: str, nb_count: int, tree: dict | None, cfg: dict = None):
+    """Substitui todos os {{ PLACEHOLDERS }} no HTML do template."""
     ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    cfg = cfg or {}
+
     rep = {
         r"\{\{\s*TITLE\s*\}\}": html.escape(title),
+        r"\{\{\s*TITLE_1\s*\}\}": cfg.get("TITLE_1", ""),
+        r"\{\{\s*TITLE_2\s*\}\}": cfg.get("TITLE_2", ""),
+        r"\{\{\s*SUBTITLE_1\s*\}\}": cfg.get("SUBTITLE_1", ""),
+        r"\{\{\s*SUBTITLE_2\s*\}\}": cfg.get("SUBTITLE_2", ""),
+        r"\{\{\s*ABOUT\s*\}\}": cfg.get("ABOUT", ""),
+        r"\{\{\s*BIO\s*\}\}": cfg.get("BIO", ""),
+        r"\{\{\s*REFERENCIAS\s*\}\}": cfg.get("REFERENCIAS", ""),
+        r"\{\{\s*CONTACT_NAME\s*\}\}": cfg.get("CONTACT_NAME", ""),
+        r"\{\{\s*CONTACT_EMAIL\s*\}\}": cfg.get("CONTACT_EMAIL", ""),
+        r"\{\{\s*GITHUB_URL\s*\}\}": cfg.get("GITHUB_URL", ""),
+        r"\{\{\s*HERO_URL\s*\}\}": cfg.get("HERO_URL", ""),
         r"\{\{\s*TIMESTAMP\s*\}\}": ts,
         r"\{\{\s*NBCOUNT\s*\}\}": str(nb_count),
     }
+
     out = src
     for pat, val in rep.items():
         out = re.sub(pat, lambda m, v=val: v, out)
+
     if tree is not None:
         safe_json = json.dumps(tree, ensure_ascii=False).replace("</", "<\\/")
         out = re.sub(r"\{\{\s*TREE_JSON\s*\}\}", lambda m, v=safe_json: v, out)
+
     return out
 
 def main():
