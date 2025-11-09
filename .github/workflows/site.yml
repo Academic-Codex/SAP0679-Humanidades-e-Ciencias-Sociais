@@ -116,21 +116,36 @@ jobs:
           cp -R template-global/* site/
 
       # Render: troca {{CHAVE}} por variáveis de ambiente criadas acima
-      - name: Renderizar placeholders {{CHAVE}}
+      - name: Preencher placeholders do template
+        env:
+          TITLE:         ${{ vars.TITLE }}
+          SUBTITLE:      ${{ vars.SUBTITLE }}
+          ABOUT:         ${{ vars.ABOUT }}
+          CONTACT_NAME:  ${{ vars.CONTACT_NAME }}
+          CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+          AREA:          ${{ vars.AREA }}
+          CATEGORY:      ${{ vars.CATEGORY }}
+          ASSETS_BASE:   ${{ vars.ASSETS_BASE }}
+          ASSETS_SUBDIR: ${{ vars.ASSETS_SUBDIR }}
+          HERO_FILE:     ${{ vars.HERO_FILE }}
         run: |
-          python - << 'PY'
-          import os, re, pathlib
-          site = pathlib.Path("site")
-          pat = re.compile(r"\{\{\s*([A-Z0-9_]+)\s*\}\}")
-          def render(txt):
-              return pat.sub(lambda m: os.environ.get(m.group(1), m.group(0)), txt)
-          for p in site.rglob("*"):
-              if p.is_file() and p.suffix.lower() in {".html",".css",".js",".xml",".txt",".md"}:
-                  try: t = p.read_text(encoding="utf-8")
-                  except: continue
-                  nt = render(t)
-                  if nt != t: p.write_text(nt, encoding="utf-8")
-          PY
+          set -euo pipefail
+          # Monte a URL completa da hero (se preferir, pode já mandar a HERO pronta nas vars)
+          HERO_URL="${ASSETS_BASE}/${ASSETS_SUBDIR}/${HERO_FILE}"
+
+          # Substituições (use gnu-sed no runner linux)
+          find site -type f \( -name '*.html' -o -name '*.css' -o -name '*.js' -o -name '*.json' \) -print0 | \
+            xargs -0 sed -i \
+              -e "s|{{ *TITLE *}}|${TITLE}|g" \
+              -e "s|{{ *SUBTITLE *}}|${SUBTITLE}|g" \
+              -e "s|{{ *ABOUT *}}|${ABOUT}|g" \
+              -e "s|{{ *CONTACT_NAME *}}|${CONTACT_NAME}|g" \
+              -e "s|{{ *CONTACT_EMAIL *}}|${CONTACT_EMAIL}|g" \
+              -e "s|{{ *AREA *}}|${AREA}|g" \
+              -e "s|{{ *CATEGORY *}}|${CATEGORY}|g" \
+              -e "s|{{ *ASSETS_BASE *}}|${ASSETS_BASE}|g" \
+              -e "s|{{ *ASSETS_SUBDIR *}}|${ASSETS_SUBDIR}|g" \
+              -e "s|{{ *HERO *}}|${HERO_URL}|g"
 
       - name: Copiar assets locais (img/, etc.)
         run: |
