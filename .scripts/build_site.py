@@ -214,11 +214,12 @@ def main():
     ap = argparse.ArgumentParser(
         description="Gera um site estático a partir de notebooks .ipynb usando nbconvert e um template externo."
     )
-    ap.add_argument("--src", type=str, required=True, help="Raiz do repositório (onde estão os notebooks)")
-    ap.add_argument("--out", type=str, required=True, help="Diretório de saída do site estático (ex.: site/)")
-    ap.add_argument("--template", type=str, required=True, help="Diretório do template (ex.: template/)")
-    ap.add_argument("--title", type=str, default=None, help="Título a exibir no site (padrão: 'Notebooks Tree — <src.name>')")
-    ap.add_argument("--execute", type=str, default="false", help="true/false: executar notebooks antes de converter")
+    ap.add_argument("--src", type=str, required=True)
+    ap.add_argument("--out", type=str, required=True)
+    ap.add_argument("--template", type=str, required=True)
+    ap.add_argument("--title", type=str, default=None)
+    ap.add_argument("--execute", type=str, default="false")
+    ap.add_argument("--cfg", type=str, default=None)  # <-- ADICIONE ISTO
     args = ap.parse_args()
 
     src = Path(args.src).resolve()
@@ -226,8 +227,9 @@ def main():
     template_dir = Path(args.template).resolve()
     execute = args.execute.lower() == "true"
     title = args.title or f"Notebooks Tree — {src.name}"
+    cfg = load_config(Path(args.cfg)) if args.cfg else {}   # <-- E ISTO
 
-    nb_count = build_static_site(src, out, template_dir, title, execute)
+    nb_count = build_static_site(src, out, template_dir, title, execute, cfg)  # <-- E ISTO
     print(f"[OK] Gerado em {out} • notebooks convertidos: {nb_count}")
 
 if __name__ == "__main__":
