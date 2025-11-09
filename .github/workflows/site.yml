@@ -1,0 +1,145 @@
+---
+name: Build & Deploy (Codex Template)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (repo local)
+        uses: actions/checkout@v4
+
+      - name: Checkout (template global)
+        uses: actions/checkout@v4
+        with:
+          repository: Academic-Codex/academic-codex.github.io
+          ref: main
+          path: template-global
+          sparse-checkout: |
+            template
+          sparse-checkout-cone-mode: true
+
+      - name: Instalar Python (e PyYAML)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      # <-- LÊ codex.yml e exporta como variáveis de ambiente
+- name: Carregar variáveis do codex.yml (com HERO do repositório central)
+  run: |
+    python - << 'PY'
+    import os, json, yaml, re
+
+    def load_config():
+        for p in ("codex.yml","codex.yaml","codex.json",".codex.yml",".codex.yaml",".codex.json"):
+            if os.path.exists(p):
+                with open(p, encoding="utf-8") as f:
+                    if p.endswith(".json"):
+                        return json.load(f) or {}
+                    return yaml.safe_load(f) or {}
+        return {}
+
+    def to_key(name):  # "contact.name" -> "CONTACT_NAME"
+        return re.sub(r'[^A-Za-z0-9_]+','_', name).upper()
+
+    def flatten(prefix, obj, out):
+        if isinstance(obj, dict):
+            for k,v in obj.items():
+                flatten(f"{prefix}{k}.", v, out)
+        else:
+            out[to_key(prefix[:-1])] = str(obj)
+
+    cfg = load_config() or {}
+
+    # Defaults para os assets centrais
+    assets_base   = cfg.get("assets_base",   "https://academic-codex.github.io").rstrip("/")
+    assets_subdir = cfg.get("assets_subdir", "img/portfolio").strip("/")
+
+    flat = {}
+    for k,v in cfg.items():
+        if isinstance(v, dict):
+            flatten(f"{k}.", v, flat)
+        else:
+            flat[to_key(k)] = str(v)
+
+    # Se o usuário forneceu HERO absoluto, usa como está.
+    # Se forneceu apenas hero_file, montamos HERO a partir do repositório central:
+    if "HERO" not in flat:
+        hero_file = cfg.get("hero_file")
+        if hero_file:
+            hero_file = hero_file.lstrip("/")
+            flat["HERO"] = f"{assets_base}/{assets_subdir}/{hero_file}"
+
+    # Exporta tudo para o ambiente do job
+    with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as gh:
+        for k, val in flat.items():
+            gh.write(f"{k}<<EOF\n{val}\nEOF\n")
+    PY
+      - name: Converter notebooks (opcional)
+        run: |
+          mkdir -p site/notebooks
+          if [ -d "notebooks" ] && compgen -G "notebooks/*.ipynb" > /dev/null; then
+            pip install nbconvert jupyter
+            jupyter nbconvert --to html --output-dir site/notebooks notebooks/*.ipynb
+          else
+            echo "Sem notebooks para converter."
+          fi
+
+      - name: Copiar template global para 'site/'
+        run: |
+          mkdir -p site
+          cp -R template-global/template/* site/
+
+      # Render: troca {{CHAVE}} por variáveis de ambiente criadas acima
+      - name: Renderizar placeholders {{CHAVE}}
+        run: |
+          python - << 'PY'
+          import os, re, pathlib
+          site = pathlib.Path("site")
+          pat = re.compile(r"\{\{\s*([A-Z0-9_]+)\s*\}\}")
+          def render(txt):
+              return pat.sub(lambda m: os.environ.get(m.group(1), m.group(0)), txt)
+          for p in site.rglob("*"):
+              if p.is_file() and p.suffix.lower() in {".html",".css",".js",".xml",".txt",".md"}:
+                  try: t = p.read_text(encoding="utf-8")
+                  except: continue
+                  nt = render(t)
+                  if nt != t: p.write_text(nt, encoding="utf-8")
+          PY
+
+      - name: Copiar assets locais (img/, etc.)
+        run: |
+          if [ -d "img" ]; then
+            mkdir -p site/img
+            cp -R img/* site/img/ || true
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
