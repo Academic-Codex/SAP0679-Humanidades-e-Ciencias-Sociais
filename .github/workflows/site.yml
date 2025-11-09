@@ -100,13 +100,6 @@ jobs:
             echo "Sem notebooks para converter."
           fi
 
-      - name: Copiar template global para 'site/'
-        run: |
-          set -e
-          mkdir -p site
-          # copie inclusive arquivos ocultos (ex.: .nojekyll)
-          cp -R template-global/.github/actions/build-template-site/template/. site/
-
       - name: Debug – verificar conteúdo baixado
         run: |
           echo "📂 Raiz do workspace:"
@@ -115,6 +108,13 @@ jobs:
           ls -la template-global || true
           echo "📂 Estrutura recursiva (primeiros 100 itens):"
           find template-global | head -n 100
+
+      - name: Copiar template global para 'site/'
+        run: |
+          set -e
+          mkdir -p site
+          # copie inclusive arquivos ocultos (ex.: .nojekyll)
+          cp -R template-global/.github/actions/build-template-site/template/. site/
 
       # Render: troca {{CHAVE}} por variáveis de ambiente criadas acima
       - name: Renderizar placeholders {{CHAVE}}
