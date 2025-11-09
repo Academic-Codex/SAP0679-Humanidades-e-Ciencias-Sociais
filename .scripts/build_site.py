@@ -5,6 +5,23 @@ import subprocess
 from datetime import datetime
 import sys
 import re, json, html
+import yaml
+
+def load_config(cfg_path: Path) -> dict:
+    """Lê o YAML com placeholders. Se HERO_URL não vier, monta de BASE+SUBDIR+FILE."""
+    if not cfg_path or not cfg_path.exists():
+        return {}
+    with cfg_path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+
+    if not data.get("HERO_URL"):
+        base = (data.get("ASSETS_BASE") or "").rstrip("/")
+        sub  = (data.get("ASSETS_SUBDIR") or "").strip("/")
+        fil  = (data.get("HERO_FILE") or "").lstrip("/")
+        if base and fil:
+            data["HERO_URL"] = "/".join(p for p in [base, sub, fil] if p)
+    return data
+
 
 # ============================= Helpers =============================
 
@@ -166,24 +183,6 @@ def build_static_site(src: Path, out: Path, template_dir: Path, title: str, exec
     return nb_count
 
 # ================================ CLI ================================
-
-import yaml
-
-def load_config(cfg_path: Path) -> dict:
-    """Carrega o arquivo YAML de configuração (placeholders)."""
-    if not cfg_path or not cfg_path.exists():
-        return {}
-    with cfg_path.open("r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    # Se não houver HERO_URL explícito, monta a partir dos outros campos
-    if not data.get("HERO_URL"):
-        base = (data.get("ASSETS_BASE") or "").rstrip("/")
-        sub  = (data.get("ASSETS_SUBDIR") or "").strip("/")
-        fil  = (data.get("HERO_FILE") or "").lstrip("/")
-        if base and fil:
-            data["HERO_URL"] = "/".join(p for p in [base, sub, fil] if p)
-    return data
-
 
 def render_tokens(src: str, title: str, nb_count: int, tree: dict | None, cfg: dict = None):
     """Substitui todos os {{ PLACEHOLDERS }} no HTML do template."""
