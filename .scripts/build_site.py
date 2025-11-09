@@ -156,11 +156,10 @@ def collect_tree(src: Path, out: Path, execute: bool):
     return root, nb_count
 
 
-def build_static_site(src: Path, out: Path, template_dir: Path, title: str, execute: bool):
+def build_static_site(src: Path, out: Path, template_dir: Path, title: str, execute: bool, cfg: dict | None):
     tree, nb_count = collect_tree(src, out, execute)
 
     out.mkdir(parents=True, exist_ok=True)
-    # páginas a gerar: nome do arquivo -> injeta TREE_JSON?
     pages = [
         ("index.html", False),     # Home
         ("software.html", True),   # Software (com árvore)
@@ -169,13 +168,12 @@ def build_static_site(src: Path, out: Path, template_dir: Path, title: str, exec
     ]
     for fname, needs_tree in pages:
         page_path = template_dir / fname
-        if not page_path.exists():  # ignora se não existir
+        if not page_path.exists():
             continue
         src_html = page_path.read_text(encoding="utf-8")
-        html_doc = render_tokens(src_html, title, nb_count, tree if needs_tree else None)
+        html_doc = render_tokens(src_html, title, nb_count, tree if needs_tree else None, cfg)
         (out / fname).write_text(html_doc, encoding="utf-8")
 
-    # assets
     copy_tree(template_dir / "css", out / "css")
     copy_tree(template_dir / "assets", out / "assets")
     copy_tree(template_dir / "js", out / "js")
