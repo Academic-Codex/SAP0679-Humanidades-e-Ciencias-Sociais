@@ -184,27 +184,23 @@ def build_static_site(src: Path, out: Path, template_dir: Path, title: str, exec
 
 # ================================ CLI ================================
 
-def render_tokens(src: str, title: str, nb_count: int, tree: dict | None, cfg: dict = None):
-    """Substitui todos os {{ PLACEHOLDERS }} no HTML do template."""
+def render_tokens(src: str, title: str, nb_count: int, tree: dict | None, cfg: dict | None):
     ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    cfg = cfg or {}
 
+    # básicos
     rep = {
         r"\{\{\s*TITLE\s*\}\}": html.escape(title),
-        r"\{\{\s*TITLE_1\s*\}\}": cfg.get("TITLE_1", ""),
-        r"\{\{\s*TITLE_2\s*\}\}": cfg.get("TITLE_2", ""),
-        r"\{\{\s*SUBTITLE_1\s*\}\}": cfg.get("SUBTITLE_1", ""),
-        r"\{\{\s*SUBTITLE_2\s*\}\}": cfg.get("SUBTITLE_2", ""),
-        r"\{\{\s*ABOUT\s*\}\}": cfg.get("ABOUT", ""),
-        r"\{\{\s*BIO\s*\}\}": cfg.get("BIO", ""),
-        r"\{\{\s*REFERENCIAS\s*\}\}": cfg.get("REFERENCIAS", ""),
-        r"\{\{\s*CONTACT_NAME\s*\}\}": cfg.get("CONTACT_NAME", ""),
-        r"\{\{\s*CONTACT_EMAIL\s*\}\}": cfg.get("CONTACT_EMAIL", ""),
-        r"\{\{\s*GITHUB_URL\s*\}\}": cfg.get("GITHUB_URL", ""),
-        r"\{\{\s*HERO_URL\s*\}\}": cfg.get("HERO_URL", ""),
         r"\{\{\s*TIMESTAMP\s*\}\}": ts,
         r"\{\{\s*NBCOUNT\s*\}\}": str(nb_count),
     }
+
+    # placeholders vindos do YAML (substituição literal, permitindo HTML)
+    if cfg:
+        for k, v in cfg.items():
+            if v is None:
+                continue
+            pat = rf"\{{\{{\s*{re.escape(k)}\s*\}}\}}"
+            rep[pat] = str(v)
 
     out = src
     for pat, val in rep.items():
