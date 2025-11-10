@@ -93,7 +93,7 @@ jobs:
             --title "${{ github.repository }}" \
             --cfg .scripts/codex.yml \
             --execute false
-        
+
           # copia a imagem hero para a pasta final
           mkdir -p site/assets/img
           cp template/assets/hero.png site/assets/img/hero.png
