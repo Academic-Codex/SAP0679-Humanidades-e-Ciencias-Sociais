@@ -47,7 +47,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install nbconvert jupyter jupyterlab_pygments pygments
 
-      # 5) Baixa a imagem hero do repositorio
+      # 6) Baixa a imagem hero do repositório global e injeta no template local (./template)
       - name: Fetch hero image (single file, raw.githubusercontent)
         shell: bash
         run: |
@@ -70,20 +70,18 @@ jobs:
           print(f"{sub}/{fil}")
           PY
 
-          HERO_REL=$(cat hero_relpath.txt)
-          HERO_URL="$BASE_RAW/$HERO_REL"
+              HERO_REL=$(cat hero_relpath.txt)
+              HERO_URL="$BASE_RAW/$HERO_REL"
 
-          # prepara template local e baixa só a hero
-          mkdir -p template_local/assets
-          cp -R .github/actions/build-template-site/template template_local
-          echo "Baixando: $HERO_URL"
-          curl -fsSL "$HERO_URL" -o template_local/assets/hero.jpg
+              echo "Baixando hero: $HERO_URL"
+              mkdir -p template/assets
+              curl -fsSL "$HERO_URL" -o template/assets/hero.jpg
 
-          # aponta o HTML do template para a hero local
-          sed -i.bak 's#{{ *HERO_URL *}}#./assets/hero.jpg#g' template_local/index.html
+              # Substitui o placeholder do template por caminho local
+              sed -i.bak 's#{{ *HERO_URL *}}#./assets/hero.jpg#g' template/index.html
 
 
-      # 6) Build do site a partir dos notebooks
+      # 7) Build do site a partir dos notebooks
       - name: Build static site
         run: |
           set -euxo pipefail
@@ -96,7 +94,7 @@ jobs:
             --cfg .scripts/codex.yml \
             --execute false
 
-      # 7) Diagnóstico: mostrar o que será publicado
+      # 8) Diagnóstico: mostrar o que será publicado
       - name: Show site tree
         run: |
           echo "== ls -R site =="
@@ -104,7 +102,7 @@ jobs:
           echo "== find site -maxdepth 3 -type f =="
           find site -maxdepth 3 -type f | sort
 
-      # 8) Publica em gh-pages (cria/atualiza branch)
+      # 9) Publica em gh-pages (cria/atualiza branch)
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
