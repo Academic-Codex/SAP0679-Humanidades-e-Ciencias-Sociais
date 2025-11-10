@@ -93,6 +93,10 @@ jobs:
             --title "${{ github.repository }}" \
             --cfg .scripts/codex.yml \
             --execute false
+        
+          # copia a imagem hero para a pasta final
+          mkdir -p site/assets/img
+          cp template/assets/hero.jpg site/assets/img/hero.jpg
 
       # 8) Diagnóstico: mostrar o que será publicado
       - name: Show site tree
