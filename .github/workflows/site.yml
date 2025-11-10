@@ -41,12 +41,49 @@ jobs:
         with:
           python-version: "3.11"
 
+      # 5) Converte notebooks
       - name: Install nbconvert + deps
         run: |
           python -m pip install --upgrade pip
           pip install nbconvert jupyter jupyterlab_pygments pygments
 
-      # 5) Build do site a partir dos notebooks
+      # 5) Baixa a imagem hero do repositorio
+      - name: Fetch hero image (single file, raw.githubusercontent)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_RAW="https://raw.githubusercontent.com/Academic-Codex/academic-codex.github.io/main"
+
+          # Lê ASSETS_SUBDIR e HERO_FILE do seu .scripts/codex.yml
+          python - <<'PY' > hero_relpath.txt
+          import yaml, sys
+          from pathlib import Path
+          d = {}
+          p = Path(".scripts/codex.yml")
+          if p.exists():
+              d = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+          sub = (d.get("ASSETS_SUBDIR") or "img/portfolio").strip("/")
+          fil = (d.get("HERO_FILE") or "").strip("/")
+          if not fil:
+              sys.exit("HERO_FILE ausente em .scripts/codex.yml")
+          print(f"{sub}/{fil}")
+          PY
+
+          HERO_REL=$(cat hero_relpath.txt)
+          HERO_URL="$BASE_RAW/$HERO_REL"
+
+          # prepara template local e baixa só a hero
+          mkdir -p template_local/assets
+          cp -R .github/actions/build-template-site/template template_local
+          echo "Baixando: $HERO_URL"
+          curl -fsSL "$HERO_URL" -o template_local/assets/hero.jpg
+
+          # aponta o HTML do template para a hero local
+          sed -i.bak 's#{{ *HERO_URL *}}#./assets/hero.jpg#g' template_local/index.html
+
+
+      # 6) Build do site a partir dos notebooks
       - name: Build static site
         run: |
           set -euxo pipefail
@@ -59,7 +96,7 @@ jobs:
             --cfg .scripts/codex.yml \
             --execute false
 
-      # 6) Diagnóstico: mostrar o que será publicado
+      # 7) Diagnóstico: mostrar o que será publicado
       - name: Show site tree
         run: |
           echo "== ls -R site =="
@@ -67,7 +104,7 @@ jobs:
           echo "== find site -maxdepth 3 -type f =="
           find site -maxdepth 3 -type f | sort
 
-      # 7) Publica em gh-pages (cria/atualiza branch)
+      # 8) Publica em gh-pages (cria/atualiza branch)
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
