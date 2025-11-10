@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Repo da disciplina (Aulas/, .scripts/, etc.)
+      # 1) Repo da disciplina (Aulas/, .github/scripts/, etc.)
       - name: Checkout repo
         uses: actions/checkout@v4
 
@@ -57,18 +57,18 @@ jobs:
 
           BASE_RAW="https://raw.githubusercontent.com/Academic-Codex/academic-codex.github.io/main"
 
-          # Lê ASSETS_SUBDIR e HERO_FILE do seu .scripts/codex.yml
+          # Lê ASSETS_SUBDIR e HERO_FILE do seu .github/scripts/codex.yml
           python - <<'PY' > hero_relpath.txt
           import yaml, sys
           from pathlib import Path
           d = {}
-          p = Path(".scripts/codex.yml")
+          p = Path(".github/scripts/codex.yml")
           if p.exists():
               d = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
           sub = (d.get("ASSETS_SUBDIR") or "img/portfolio").strip("/")
           fil = (d.get("HERO_FILE") or "").strip("/")
           if not fil:
-              sys.exit("HERO_FILE ausente em .scripts/codex.yml")
+              sys.exit("HERO_FILE ausente em .github/scripts/codex.yml")
           print(f"{sub}/{fil}")
           PY
 
@@ -88,12 +88,12 @@ jobs:
         run: |
           set -euxo pipefail
           rm -rf site
-          python .scripts/build_site.py \
+          python .github/scripts/build_site.py \
             --src . \
             --out site \
             --template template \
             --title "${{ github.repository }}" \
-            --cfg .scripts/codex.yml \
+            --cfg .github/scripts/codex.yml \
             --execute false
 
           # detecta o arquivo hero baixado e renomeia para hero.png
