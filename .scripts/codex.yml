@@ -26,6 +26,6 @@ GITHUB_URL: https://github.com/Academic-Codex/SAP0679-Humanidades-e-Ciencias-Soc
 # ou um URL absoluto. Se for relativo, o build compõe o caminho.
 ASSETS_BASE: https://academic-codex.github.io
 ASSETS_SUBDIR: img/portfolio
-HERO_FILE: ciencias-sociais.jpg
+HERO_FILE: ciencias-sociais.png
 # Opcional: passe um URL direto e ele tem prioridade
-HERO_URL:  # ex.: https://…/img/portfolio/ciencias-sociais.jpg
+HERO_URL: # ex.: https://…/img/portfolio/ciencias-sociais.jpg
