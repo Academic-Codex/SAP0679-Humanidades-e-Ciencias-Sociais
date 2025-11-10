@@ -93,7 +93,7 @@ jobs:
             --title "${{ github.repository }}" \
             --cfg .scripts/codex.yml \
             --execute false
-
+  
           # detecta o arquivo hero baixado e renomeia para hero.png
           HERO_SRC=$(find template/assets -maxdepth 1 -type f -name "hero.*" -o -name "*.jpg" -o -name "*.png" | head -n 1 || true)
 
