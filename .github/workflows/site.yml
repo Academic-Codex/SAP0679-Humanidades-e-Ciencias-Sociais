@@ -94,9 +94,16 @@ jobs:
             --cfg .scripts/codex.yml \
             --execute false
 
-          # copia a imagem hero para a pasta final
-          mkdir -p site/assets/img
-          cp template/assets/hero.png site/assets/img/hero.png
+          # detecta o arquivo hero baixado e renomeia para hero.png
+          HERO_SRC=$(find template/assets -maxdepth 1 -type f -name "hero.*" -o -name "*.jpg" -o -name "*.png" | head -n 1 || true)
+
+          if [ -z "$HERO_SRC" ]; then
+            echo "⚠️  Nenhuma imagem hero encontrada em template/assets/"
+          else
+            mkdir -p site/assets/img
+            echo "📸 Copiando $HERO_SRC → site/assets/img/hero.png"
+            cp "$HERO_SRC" site/assets/img/hero.png
+          fi
 
       # 8) Diagnóstico: mostrar o que será publicado
       - name: Show site tree
