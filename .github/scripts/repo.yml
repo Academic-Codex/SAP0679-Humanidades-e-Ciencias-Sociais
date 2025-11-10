@@ -12,14 +12,9 @@ REFERENCIAS: |
     <li>Artigo B …</li>
   </ul>
 
-CONTACT_NAME: Nara Avila
-CONTACT_EMAIL: nara.moraes@usp.br
 GITHUB_LINK: https://github.com/Academic-Codex/SAP0679-Humanidades-e-Ciencias-Sociais
 
-# hero: você pode apontar um path relativo do repo de imagens global
-# ou um URL absoluto. Se for relativo, o build compõe o caminho.
 ASSETS_BASE: https://academic-codex.github.io
 ASSETS_SUBDIR: img/portfolio
 HERO_FILE: ciencias-sociais.png
-# Opcional: passe um URL direto e ele tem prioridade
 HERO_URL: # ex.: https://…/img/portfolio/ciencias-sociais.jpg
