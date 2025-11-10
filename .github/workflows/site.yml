@@ -96,7 +96,7 @@ jobs:
         
           # copia a imagem hero para a pasta final
           mkdir -p site/assets/img
-          cp template/assets/hero.jpg site/assets/img/hero.jpg
+          cp template/assets/hero.png site/assets/img/hero.png
 
       # 8) Diagnóstico: mostrar o que será publicado
       - name: Show site tree
