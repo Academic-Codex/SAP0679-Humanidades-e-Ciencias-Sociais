@@ -8,13 +8,10 @@ ABOUT: |
 
 REFERENCIAS: |
   <ul>
-    <li>Livro A …</li>
-    <li>Artigo B …</li>
+    <li>Livro AA …</li>
+    <li>Artigo BB …</li>
   </ul>
 
 GITHUB_LINK: https://github.com/Academic-Codex/SAP0679-Humanidades-e-Ciencias-Sociais
 
-ASSETS_BASE: https://academic-codex.github.io
-ASSETS_SUBDIR: img/portfolio
 HERO_FILE: ciencias-sociais.png
-HERO_URL: # ex.: https://…/img/portfolio/ciencias-sociais.jpg

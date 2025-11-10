@@ -66,15 +66,15 @@ jobs:
           print(f"{sub}/{fil}")
           PY
 
-              HERO_REL=$(cat hero_relpath.txt)
-              HERO_URL="$BASE_RAW/$HERO_REL"
+          HERO_REL=$(cat hero_relpath.txt)
+          HERO_URL="$BASE_RAW/$HERO_REL"
 
-              echo "Baixando hero: $HERO_URL"
-              mkdir -p template/assets
-              curl -fsSL "$HERO_URL" -o template/assets/hero.jpg
+          echo "Baixando hero: $HERO_URL"
+          mkdir -p template/assets
+          curl -fsSL "$HERO_URL" -o template/assets/hero.jpg
 
-              # Substitui o placeholder do template por caminho local
-              sed -i.bak 's#{{ *HERO_URL *}}#./assets/hero.jpg#g' template/index.html
+          # Substitui o placeholder do template por caminho local
+          sed -i.bak 's#{{ *HERO_URL *}}#./assets/hero.jpg#g' template/index.html
 
       - name: Build static site
         run: |
