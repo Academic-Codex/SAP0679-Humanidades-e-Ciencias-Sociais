@@ -3,8 +3,8 @@
 </p> -->
 
 <p align="center">
-  <a href="https://Academic-Codex.github.io/SAP0679-Humanidades-e-Ciencias-Sociais">
-    <img src=".github/readme/hero.svg?v=2026-01-08T01:39:56.939310Z" width="100%" alt="Access the course website" />
+  <a href="https://academic-codex.github.io/SAP0679-Humanidades-e-Ciencias-Sociais?utm_source=SAP0679-Humanidades-e-Ciencias-Sociais&utm_medium=readme">
+    <img src=".github/readme/hero.svg?v=2026-02-03T01:39:52.711037Z" width="100%" alt="Access the course website" />
   </a>
 </p>
 
